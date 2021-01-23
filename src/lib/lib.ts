@@ -40,14 +40,15 @@ export function asyncParse(file: File): Promise<Row[]> {
   })
 }
 
+export function buildAddress(row: Row, addressBuilder: string): string {
+  return Object.entries(row).reduce<string>((acc, [k, v]) => {
+    const replaced = acc.replace(`{${k}}`, String(v))
+    return replaced
+  }, addressBuilder)
+}
+
 export function extractAddresses(rows: Row[], addressBuilder: string): string[] {
-  const addresses = rows.map((r) => {
-    const address = Object.entries(r).reduce<string>((acc, [k, v]) => {
-      const replaced = acc.replace(`{${k}}`, String(v))
-      return replaced
-    }, addressBuilder)
-    return address
-  })
+  const addresses = rows.map((r) => buildAddress(r, addressBuilder))
   return addresses
 }
 

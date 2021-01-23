@@ -11,7 +11,7 @@ import {
   Row,
 } from './lib'
 
-const EXAMPLE_SIZE = 20
+const EXAMPLE_SIZE = 10
 const PERSISTED_ATTRIBUTES = ['token' as const, 'apiService' as const]
 
 function loadAttributes(obs: State, attributes: string[]) {

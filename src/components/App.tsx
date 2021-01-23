@@ -15,7 +15,7 @@ const AppComponent = () => {
       {state.loading && <Loading />}
       <div className="flex flex-column items-center justify-start ph5">
         <Header />
-        <div className="flex flex-column w-100 items-center">
+        <div className="flex flex-column w-80 items-center m-auto bt bw1">
           <UploadCsv />
           <BuildAddress />
           <Token />

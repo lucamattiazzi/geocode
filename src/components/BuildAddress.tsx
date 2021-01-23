@@ -21,17 +21,6 @@ const BuildAddressComponent = () => {
           value={state.buildAddress}
         />
       </div>
-      <div className="w-100 flex flex-wrap">
-        {state.colNames.map((col) => (
-          <span
-            className="mh2 ph2 pv1 mv1 pointer"
-            onClick={() => state.addColToAddress(col)}
-            key={col}
-          >
-            {col}
-          </span>
-        ))}
-      </div>
     </div>
   )
 }
