@@ -1,17 +1,26 @@
+import { chunk, noop } from 'lodash-es'
 import papaparse from 'papaparse'
 
 export type Row = Record<string, string | number>
 export type Geocoded = { lat: number; lng: number }
 
-export const APIS = {
+export type Handler = (
+  token: string,
+  addresses: string[],
+  cb: (val: number) => void
+) => Promise<Geocoded[]>
+
+export const APIS: Record<string, Handler> = {
   google: geocodeViaGoogle,
   mapbox: geocodeViaMapbox,
   mapboxPermanent: geocodeViaMapboxPermanent,
 } as const
 
-export type Handler = (token: string, addresses: string[]) => Promise<Geocoded[]>
-
 export type ApiService = keyof typeof APIS
+
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms))
+}
 
 export function getColumns(data: Row[]): string[] {
   if (data.length === 0) return []
@@ -42,7 +51,11 @@ export function extractAddresses(rows: Row[], addressBuilder: string): string[] 
   return addresses
 }
 
-function geocodeViaGoogle(token: string, addresses: string[]): Promise<Geocoded[]> {
+function geocodeViaGoogle(
+  token: string,
+  addresses: string[],
+  cb: (val: number) => void = noop
+): Promise<Geocoded[]> {
   return Promise.resolve([])
 }
 
@@ -52,23 +65,43 @@ function parseMapboxResult(result: any): Geocoded {
   return { lng, lat }
 }
 
-function geocodeViaMapbox(token: string, addresses: string[]): Promise<Geocoded[]> {
+async function geocodeViaMapbox(
+  token: string,
+  addresses: string[],
+  cb: (val: number) => void = noop
+): Promise<Geocoded[]> {
   const MAPBOX_URL = 'https://api.mapbox.com/geocoding/v5/mapbox.places/'
-  const resultPromises = addresses.map((address) => {
-    const parsedAddress = encodeURIComponent(address)
-    const url = `${MAPBOX_URL}${parsedAddress}.json?access_token=${token}`
-    return fetch(url)
-      .then((r) => r.json())
-      .then(parseMapboxResult)
-      .catch((e) => {
-        console.error(e)
-        return { lng: null, lat: null }
-      })
-  })
-  return Promise.all(resultPromises)
+  const chunkedAddresses = chunk(addresses, 6)
+  const results: Geocoded[] = []
+  const total = addresses.length || 1
+  for (const chunk of chunkedAddresses) {
+    const resultPromises = chunk.map((address) => {
+      const parsedAddress = encodeURIComponent(address)
+      const url = `${MAPBOX_URL}${parsedAddress}.json?access_token=${token}`
+      return fetch(url)
+        .then((r) => r.json())
+        .then(parseMapboxResult)
+        .catch((e) => {
+          console.error(e)
+          return {
+            lng: null,
+            lat: null,
+          } as Geocoded
+        })
+    })
+    const chunkResults = await Promise.all(resultPromises)
+    results.push(...chunkResults)
+    cb(results.length / total)
+    await sleep(100)
+  }
+  return results
 }
 
-function geocodeViaMapboxPermanent(token: string, addresses: string[]): Promise<Geocoded[]> {
+function geocodeViaMapboxPermanent(
+  token: string,
+  addresses: string[],
+  cb: (val: number) => void = noop
+): Promise<Geocoded[]> {
   const MAPBOX_URL = 'https://api.mapbox.com/geocoding/v5/mapbox.places-permanent/'
   const addressString = addresses.map((a) => encodeURIComponent(a)).join(';')
   const url = `${MAPBOX_URL}${addressString}.json?access_token=${token}`

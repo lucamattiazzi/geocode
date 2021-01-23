@@ -39,6 +39,7 @@ class State {
   buildAddress: string = ''
   data: Row[] = []
   loading: boolean = false
+  completion: number = 0
 
   constructor() {
     loadAttributes(this, PERSISTED_ATTRIBUTES)
@@ -64,14 +65,18 @@ class State {
     return this.filename.replace('.csv', '.geocoded.csv')
   }
 
+  get completionPerc(): string {
+    return (this.completion * 100).toFixed(2)
+  }
+
   // FUNCTIONS
 
   geocode = async () => {
     this.setLoading(true)
-    const addresses = extractAddresses(this.exampleData, this.buildAddress)
-    const coords = await state.geocodeHandler(state.token, addresses)
+    const addresses = extractAddresses(this.data, this.buildAddress)
+    const coords = await state.geocodeHandler(state.token, addresses, this.setCompletion)
     this.setLoading(false)
-    const updated = addCoordsToData(this.exampleData, coords)
+    const updated = addCoordsToData(this.data, coords)
     const newCsv = papaparse.unparse(updated)
     console.log('newCsv', newCsv)
     fileDownload(newCsv, this.geocodedFilename)
@@ -105,6 +110,10 @@ class State {
 
   addColToAddress = (col: string) => {
     this.setBuildAddress(`${this.buildAddress}{${col}} `)
+  }
+
+  setCompletion = (completion: number) => {
+    this.completion = completion
   }
 }
 
