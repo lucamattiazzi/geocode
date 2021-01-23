@@ -21,12 +21,9 @@ const TableComponent = () => {
           <tr>
             {state.colNames.map((colName) => (
               <th
-                style={{
-                  borderBottom: 'solid 3px red',
-                  background: 'aliceblue',
-                  color: 'black',
-                  fontWeight: 'bold',
-                }}
+                className="pointer black b bb-3"
+                onClick={() => state.addColToAddress(colName)}
+                key={colName}
               >
                 {colName}
               </th>
@@ -34,7 +31,7 @@ const TableComponent = () => {
           </tr>
         </thead>
         <tbody>
-          {state.tableData.map((row, idx) => (
+          {state.exampleData.map((row, idx) => (
             <RowComponent key={idx} row={row} colNames={state.colNames} />
           ))}
         </tbody>

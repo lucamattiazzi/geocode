@@ -6,6 +6,7 @@ export function UploadCsv() {
   function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files[0]
     if (!file) return
+    state.setFilename(file.name)
     asyncParse(file).then(state.setData)
   }
 

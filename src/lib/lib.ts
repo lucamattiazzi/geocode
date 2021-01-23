@@ -81,6 +81,6 @@ function geocodeViaMapboxPermanent(token: string, addresses: string[]): Promise<
     })
 }
 
-export function addCoordsToData(rows: Row[], coords: Geocoded[]): Promise<void> {
-  const mixed = rows.map((row, idx) => Object.assign(row, coords[idx]))
+export function addCoordsToData(rows: Row[], coords: Geocoded[]): Row[] {
+  return rows.map((row, idx) => Object.assign(row, coords[idx]))
 }

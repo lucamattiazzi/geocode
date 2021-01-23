@@ -1,4 +1,6 @@
-import { makeAutoObservable } from 'mobx'
+import { makeAutoObservable, reaction } from 'mobx'
+import papaparse from 'papaparse'
+import fileDownload from 'js-file-download'
 import {
   addCoordsToData,
   APIS,
@@ -9,17 +11,39 @@ import {
   Row,
 } from './lib'
 
-const TABLE_SIZE = 20
+const EXAMPLE_SIZE = 20
+const PERSISTED_ATTRIBUTES = ['token' as const, 'apiService' as const]
+
+function loadAttributes(obs: State, attributes: string[]) {
+  for (const key of attributes) {
+    const rawValue = localStorage.getItem(key)
+    if (!rawValue) continue
+    const { value } = JSON.parse(rawValue)
+    obs[key] = value
+  }
+}
+
+function persistAttributes(obs: State, attributes: string[]) {
+  for (const key of attributes) {
+    reaction(
+      () => obs[key],
+      (value) => localStorage.setItem(key, JSON.stringify({ value }))
+    )
+  }
+}
 
 class State {
   token: string = ''
   apiService: ApiService = 'mapbox'
+  filename: string = ''
   buildAddress: string = ''
   data: Row[] = []
-  loading: boolean = true
+  loading: boolean = false
 
   constructor() {
+    loadAttributes(this, PERSISTED_ATTRIBUTES)
     makeAutoObservable(this)
+    persistAttributes(this, PERSISTED_ATTRIBUTES)
   }
 
   // GETTERS
@@ -32,23 +56,35 @@ class State {
     return APIS[this.apiService]
   }
 
-  get tableData(): Row[] {
-    return this.data.slice(0, TABLE_SIZE)
+  get exampleData(): Row[] {
+    return this.data.slice(0, EXAMPLE_SIZE)
+  }
+
+  get geocodedFilename(): string {
+    return this.filename.replace('.csv', '.geocoded.csv')
   }
 
   // FUNCTIONS
 
   geocode = async () => {
     this.setLoading(true)
-    const addresses = extractAddresses(this.data.slice(10), this.buildAddress)
+    const addresses = extractAddresses(this.exampleData, this.buildAddress)
     const coords = await state.geocodeHandler(state.token, addresses)
-    addCoordsToData(this.data.slice(10), coords)
+    this.setLoading(false)
+    const updated = addCoordsToData(this.exampleData, coords)
+    const newCsv = papaparse.unparse(updated)
+    console.log('newCsv', newCsv)
+    fileDownload(newCsv, this.geocodedFilename)
   }
 
   // ACTIONS
 
   setToken = (token: string) => {
     this.token = token
+  }
+
+  setFilename = (filename: string) => {
+    this.filename = filename
   }
 
   setLoading = (loading: boolean) => {
